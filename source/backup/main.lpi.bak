@@ -30,7 +30,7 @@
         <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="70">
+    <Units Count="71">
       <Unit0>
         <Filename Value="main.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -658,13 +658,24 @@
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
         <TopLine Value="445"/>
-        <CursorPos X="5" Y="456"/>
+        <CursorPos X="3" Y="456"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit69>
+      <Unit70>
+        <Filename Value="..\lib\Core\IO\ElysionLogger.pas"/>
+        <UnitName Value="ElysionLogger"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="393"/>
+        <CursorPos X="1" Y="411"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit70>
     </Units>
-    <JumpHistory Count="3" HistoryIndex="2">
+    <JumpHistory Count="4" HistoryIndex="3">
       <Position1>
         <Filename Value="..\lib\Graphics\ElysionCamera.pas"/>
         <Caret Line="117" Column="90" TopLine="64"/>
@@ -677,6 +688,10 @@
         <Filename Value="..\lib\Graphics\ElysionCamera.pas"/>
         <Caret Line="102" Column="11" TopLine="91"/>
       </Position3>
+      <Position4>
+        <Filename Value="..\lib\Core\ElysionApplication.pas"/>
+        <Caret Line="456" Column="5" TopLine="445"/>
+      </Position4>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
