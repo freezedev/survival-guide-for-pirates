@@ -84,6 +84,299 @@
 unit ElysionRendering;
 
 
+interface
+
+{$I Elysion.inc}
+
+uses
+  ElysionUtils,
+  ElysionObject,
+  ElysionApplication,
+  ElysionTypes,
+  ElysionColor,
+  ElysionInput,
+  ElysionTimer,
+  ElysionNode,
+  ElysionTexture,
+  ElysionContent,
+  ElysionLogger,
+
+  {$IFDEF USE_DGL_HEADER}
+  dglOpenGL,
+  {$ELSE}
+  gl, glu, glext,
+  {$ENDIF}
+  SDL,
+  SDLUtils,
+  //SDLTextures,
+
+  SysUtils,
+  OpenURLUtil,
+  Classes;
+
+
+type
+    
+    
+    TelShader = class   
+        private
+            
+            {*
+                OpenGL Core Variables
+            *}   
+            program_id : GLuint;      // program id
+            vertexshader_id : GLuint; // vertex shader id
+            pixelshader_id  : GLuint; // pixel shader  id
+            
+            is_compiled : Boolean;
+            is_linked   : Boolean;  
+            
+            pixel_source : String; // Pixel Shader Source
+            vertex_source : String;// Vertex Shader Source
+                
+            texture_counter : Integer;
+            
+        public
+        
+        
+            constructor Create( vertex : String; pixel : String );
+        
+            function Map( val : TelTexture; name : String ): Boolean; overload;
+            function Map( val : Single; name : String ) : Boolean; overload;
+            function Map( val : Integer; name : String ) : Boolean; overload;
+            function Map( val : TelVector3f; name : string ): Boolean; overload;
+            function Map( val : TelVector2f; name : String ): Boolean; overload;
+            function Map( val : Boolean; name : String ): Boolean; overload;
+            function Map( val : String; name : String ): Boolean; overload;
+            
+            function BindShader : Boolean;
+            function UnbindShader : Boolean;
+            
+            function Compile : Boolean;
+            function Update  : Boolean;            
+                        
+            function SetPixelShader( source : String ): Boolean;
+            function SetVertexShader( source : String ): Boolean;
+
+    end;
+    
+    
+    TelRenderTarget = class
+        private
+        
+        public
+    end;
+    
+    
+    TelPostProcess = class
+        private
+        
+        public
+    end;
+
+
+
+implementation
+
+
+constructor TelShader.Create( vertex : String; pixel : String );
+begin
+    texture_counter := 0;
+    program_id := 0;
+    vertexshader_id := 0;
+    pixelshader_id := 0;
+    is_compiled := true;
+    is_linked := true;
+    pixel_source := pixel;
+    vertex_source := vertex;
+end;
+
+function TelShader.Update : Boolean;
+begin
+    if ( is_compiled ) then begin
+        BindShader;
+        UnbindShader;
+        result := true;
+    end else 
+        result := false;
+end;            
+        
+function TelShader.Map( val : Single; name : String ) : Boolean;
+var loc : GLint;
+begin
+    if ( is_compiled ) then begin
+        BindShader;
+        loc := glGetUniformLocation( program_id, PChar(name) );
+        glUniform1f( loc, val  );
+        UnbindShader;
+        result := true;
+    end else begin
+        result := false;
+    end;
+end;
+
+
+function TelShader.Map( val : TelTexture; name : String ) : Boolean; 
+var loc : GLint;
+begin
+    if ( is_compiled ) then begin
+        glActiveTexture( GL_TEXTURE0 + texture_counter );
+        glBindTexture( GL_TEXTURE_2D, val.TextureId );
+        
+        loc := glGetUniformLocation( program_id, PChar(name) );
+        glUniform1i( loc, texture_counter );
+        
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        texture_counter := texture_counter + 1;
+        result := true;
+    end else begin
+        result := false;
+    end;
+end;            
+
+function TelShader.Map( val : Integer; name : String ) : Boolean; 
+var loc : GLint;
+begin
+    if ( is_compiled ) then begin
+        BindShader;
+        loc := glGetUniformLocation( program_id, PChar(name) );
+        glUniform1i( loc, val );
+        UnbindShader;
+        result := true;
+    end else begin
+        result := false;
+    end;
+end;
+            
+
+function TelShader.Map( val : TelVector3f; name : string ): Boolean;
+var loc : GLint;
+begin
+    if ( is_compiled ) then begin
+        BindShader;
+        loc := glGetUniformLocation( program_id, PChar(name) );
+        glUniform3f( loc, val.x, val.y, val.z );
+        UnbindShader;
+        result := true;
+    end else begin
+        result := false;
+    end;
+end;
+            
+
+function TelShader.Map( val : TelVector2f; name : String ): Boolean;
+var loc : GLint;
+begin
+    if ( is_compiled ) then begin
+        BindShader;
+        loc := glGetUniformLocation( program_id, PChar(name) );
+        glUniform2f( loc, val.x, val.y);
+        UnbindShader;
+        result := true;
+    end else begin
+        result := false;
+    end;
+end;
+            
+
+function TelShader.Map( val : Boolean; name : String ): Boolean;
+var loc : GLint;
+begin
+    if ( is_compiled ) then begin
+        BindShader;
+        loc := glGetUniformLocation( program_id, PChar(name) );
+        glUniform1i( loc, Integer(val) );
+        UnbindShader;
+        result := true;
+    end else begin
+        result := false;
+    end;
+
+end;
+            
+function TelShader.Map( val : String; name : String ): Boolean;
+begin
+    result := false;
+end;
+            
+function TelShader.BindShader : Boolean;
+begin
+    if ( is_compiled ) then begin
+        glUseProgram( program_id );
+        result := true;
+    end else 
+        result := false; 
+end;
+            
+function TelShader.UnbindShader : Boolean;
+begin
+    if ( is_compiled ) then begin
+        glUseProgram( 0 );
+        result := true;
+    end else 
+        result := false; 
+end;
+                        
+function TelShader.Compile : Boolean;
+var sz : Integer;
+  blen, slen: GLInt;
+  InfoLog: PGLCharARB;
+begin
+    program_id := 0;
+    
+    // Compile Vertex Shader
+    vertexshader_id := glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource( vertexshader_id, 1, @(vertex_source), @sz );
+    glCompileShader( vertexshader_id );
+    
+    // Compile Vertex Shader
+    pixelshader_id := glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource( pixelshader_id, 1, @(pixel_source), @sz );
+    glCompileShader( pixelshader_id );
+
+    // Create Program
+    program_id := glCreateProgram();
+    glAttachShader(  program_id, vertexshader_id );
+    glAttachShader(  program_id, pixelshader_id );
+    
+    glLinkProgram(program_id);
+      
+      glGetShaderiv(vertexshader_id, GL_INFO_LOG_LENGTH , @blen);
+      if blen > 1 then
+      begin
+        GetMem(InfoLog, blen * SizeOf(GLCharARB));
+        glGetShaderInfoLog(vertexshader_id, blen, slen, InfoLog);
+        WriteLn('Vertex: ' + PChar(InfoLog));
+        Dispose(InfoLog);
+      end;
+
+      glGetShaderiv(pixelshader_id, GL_INFO_LOG_LENGTH , @blen);
+      if blen > 1 then
+      begin
+        GetMem(InfoLog, blen * SizeOf(GLCharARB));
+        glGetShaderInfoLog(pixelshader_id, blen, slen, InfoLog);
+        WriteLn('Pixel: ' + PChar(InfoLog));
+        Dispose(InfoLog);
+      end;          
+    is_linked := glIsProgram( program_id );
+    is_compiled := true;//glIsProgram( program_id );
+    result := glIsProgram( program_id );
+end;            
+           
+function TelShader.SetPixelShader( source : String ): Boolean;
+begin
+    pixel_source := source;
+end;        
+
+function TelShader.SetVertexShader( source : String ): Boolean;
+begin
+    vertex_source := source;
+end;
+            
+
+
+end.
 
 
 
