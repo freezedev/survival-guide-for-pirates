@@ -97,6 +97,7 @@ type
       property ClipRect: TelRect read fClipRect; // Use ClipImage to set ClipRect
       // Custom Bounding Box
       property CustomBBox: TelRect read fCustomBBox write fCustomBBox;
+
     published
       property AspectRatio: Single read GetAspectRatio;
 
@@ -254,6 +255,7 @@ TelSpriteList = class(TelObject)
   published
     property Count: Integer read GetCount;
 end;
+
 
 implementation
 
@@ -878,6 +880,10 @@ begin
   if (HyperLink <> '') and GetClick then OpenURL(HyperLink);
 end;
 
+procedure TelSprite.setTexture(texture : TelTexture)
+begin
+  ftexture := texture;
+end;
 
 constructor TelSpriteSheet.Create;
 begin
@@ -1215,6 +1221,12 @@ begin
   inherited Create;
 end;
 
+procedure TelParallexSprite.LoadFromFile(const aFileName : String): Boolean;
+var CopyCountWidth : Integer;
+begin
+  inherited LoadFromFile(aFileName);
+end;
+
 destructor TelParallaxSprite.Destroy;
 begin
   inherited Destroy;
@@ -1222,32 +1234,80 @@ end;
 
 procedure TelParallaxSprite.Start();
 begin
-
+  fPaused := false;
 end;
 
 procedure TelParallaxSprite.Stop();
 begin
-
+  fPaused := true;
 end;
 
 procedure TelParallaxSprite.Pause();
 begin
-
+  fPaused := true;
 end;
 
 procedure TelParallaxSprite.UnPause();
 begin
-
+  fPaused := false;
 end;
 
 procedure TelParallaxSprite.Draw();
+var leftMissing, rightMissing, upMissing, downMissing, formerX, formerY : Integer;
 begin
-  inherited Draw();
+  inherited Draw;
+  // Ensure that the texture is bigger than the screen's width and height.
+  // +2 because one picture can be partially visible, the second additional picture is guaranteed not to be seen.
+  formerX := fInternalPosition.X;
+  formerY := fInternalPosition.Y;
+
+  //TODO: Ermitteln, wie viel nach links / rechts; oben / unten fehlt. Wenn das Bild zu weit außen ist, nach (0,0) verschieben (mindert Speicherbedarf).
+  leftMissing := (fInternalPosition.X div Width )+1;
+  rightMissing := (Application.Width - (fInternalPosition.X+ Width))/Width +1;
+  upMissing := (fInternalPosition.y div Height) +1;
+  downMissing := ((Application.Height - (fInternalPosition.y + Height)) div Height) +1;
+
+  //  Draw shapes missing to completely fill the scene. Reset the sprite to its former coordinates after each run.
+
+  for i := 0 to leftMissing do
+  begin
+    Move(formerX,formerY-(Width*i));
+    (Self as TelSprite).Draw;
+  end;
+
+  Move(formerX, formerY);
+  for i := 0 to rightMissing do
+  begin
+    Move(formerX,i*Width+formerY);
+    (Self as TelSprite).Draw;
+  end;
+
+  Move(formerX, formerY);
+  for i := 0 to topMissing do
+  begin
+    Move(formerX-i*Height,formerY);
+    (Self as TelSprite).Draw;
+  end;
+
+  Move(formerX, formerY);
+  for i := 0 to downMissing do
+  begin
+    Move(formerX+i*Height,formerY);
+    (Self as TelSprite).Draw;
+  end;
+
+  Move(formerX, formerY);
 end;
+
 
 procedure TelParallaxSprite.Update(dt: Double);
 begin
   inherited Update(dt);
+  case fDirection of
+   dtUp: fInternalPosition.Y := fInternalPosition.Y -fSpeed*dt;
+   dtDown: fInternalPosition.Y := fInternalPosition.Y +fSpeed*dt;
+   dtLeft: fInternalPosition.Y := fInternalPosition.X -fSpeed*dt;
+   dtRight: fInternalPosition.Y := fInternalPosition.X +fSpeed*dt;
 end;
 
 end.
