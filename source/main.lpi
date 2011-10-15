@@ -598,10 +598,13 @@
       <Unit63>
         <Filename Value="..\lib\Graphics\ElysionSprite.pas"/>
         <UnitName Value="ElysionSprite"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="5"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="206"/>
-        <CursorPos X="7" Y="220"/>
+        <TopLine Value="1203"/>
+        <CursorPos X="1" Y="1220"/>
         <UsageCount Value="13"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit63>
       <Unit64>
@@ -687,17 +690,16 @@
       <Unit72>
         <Filename Value="units\uPlayerShip.pas"/>
         <UnitName Value="uPlayerShip"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="4"/>
         <WindowIndex Value="0"/>
         <TopLine Value="30"/>
-        <CursorPos X="49" Y="68"/>
+        <CursorPos X="59" Y="47"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit72>
     </Units>
-    <JumpHistory Count="8" HistoryIndex="7">
+    <JumpHistory Count="11" HistoryIndex="10">
       <Position1>
         <Filename Value="..\lib\Graphics\ElysionCamera.pas"/>
         <Caret Line="117" Column="90" TopLine="64"/>
@@ -730,6 +732,18 @@
         <Filename Value="units\uShip.pas"/>
         <Caret Line="42" Column="32" TopLine="19"/>
       </Position8>
+      <Position9>
+        <Filename Value="..\lib\Graphics\ElysionSprite.pas"/>
+        <Caret Line="220" Column="7" TopLine="206"/>
+      </Position9>
+      <Position10>
+        <Filename Value="..\lib\Graphics\ElysionSprite.pas"/>
+        <Caret Line="883" Column="1" TopLine="865"/>
+      </Position10>
+      <Position11>
+        <Filename Value="..\lib\Graphics\ElysionSprite.pas"/>
+        <Caret Line="1221" Column="21" TopLine="1197"/>
+      </Position11>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -765,6 +779,7 @@ if TargetOS = 'darwin' then
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="True"/>
+        <DebugInfoType Value="dsStabs"/>
         <StripSymbols Value="True"/>
         <UseExternalDbgSyms Value="True"/>
       </Debugging>

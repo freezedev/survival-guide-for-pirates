@@ -880,10 +880,7 @@ begin
   if (HyperLink <> '') and GetClick then OpenURL(HyperLink);
 end;
 
-procedure TelSprite.setTexture(texture : TelTexture)
-begin
-  ftexture := texture;
-end;
+
 
 constructor TelSpriteSheet.Create;
 begin
@@ -1221,11 +1218,6 @@ begin
   inherited Create;
 end;
 
-procedure TelParallexSprite.LoadFromFile(const aFileName : String): Boolean;
-var CopyCountWidth : Integer;
-begin
-  inherited LoadFromFile(aFileName);
-end;
 
 destructor TelParallaxSprite.Destroy;
 begin
