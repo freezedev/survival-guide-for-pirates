@@ -329,16 +329,16 @@ begin
       glBegin(GL_QUADS);
         
         glTexCoord2f(0, 1); 		
-        glVertex3f(Position.X / ActiveWindow.Width - 1  , Position.Y / ActiveWindow.Height, -Position.Z);
+        glVertex3f(Position.X / ActiveWindow.Width, Position.Y / ActiveWindow.Height, -Position.Z);
         
         glTexCoord2f(0, 0); 
-        glVertex3f( Position.X / ActiveWindow.Width- 1 , (Position.Y + fHeight) /  ActiveWindow.Height,  -Position.Z);
+        glVertex3f( Position.X / ActiveWindow.Width, (Position.Y + fHeight) /  ActiveWindow.Height,  -Position.Z);
         
         glTexCoord2f(1, 0); 
-        glVertex3f((Position.X + fWidth) / ActiveWindow.Width - 1 , (Position.Y + fHeight) /  ActiveWindow.Height, -Position.Z);
+        glVertex3f((Position.X + fWidth) / ActiveWindow.Width, (Position.Y + fHeight) /  ActiveWindow.Height, -Position.Z);
         
         glTexCoord2f(1,1);
-        glVertex3f((Position.X + fWidth) / ActiveWindow.Width - 1 , Position.Y / ActiveWindow.Height, -Position.Z);
+        glVertex3f((Position.X + fWidth) / ActiveWindow.Width, Position.Y / ActiveWindow.Height, -Position.Z);
      
       glEnd;
         

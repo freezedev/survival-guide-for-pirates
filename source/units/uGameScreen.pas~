@@ -214,6 +214,7 @@ begin
     //fCamera.Velocity.Clear();
     //if Input.Keyboard.IsKeyDown(Key.Left) then fCamera.Viewport.X := fCamera.Viewport.X + 1;
 
+    if Input.Keyboard.IsKeyDown(Key.Left) then Sprite.Position.X := Sprite.Position.X + 1;
     if Input.Keyboard.IsKeyHit(Key.Space()) then fAnimator.Start();
 
     fAnimator.Update(dt);
