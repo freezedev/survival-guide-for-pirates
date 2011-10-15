@@ -24,7 +24,6 @@ uses
   ElysionAnimTypes,
   ElysionTimer,
   ElysionInput,
-  ElysionRendering,
   ElysionApplication;
 
 type
@@ -97,7 +96,6 @@ type
       property ClipRect: TelRect read fClipRect; // Use ClipImage to set ClipRect
       // Custom Bounding Box
       property CustomBBox: TelRect read fCustomBBox write fCustomBBox;
-
     published
       property AspectRatio: Single read GetAspectRatio;
 
@@ -130,6 +128,8 @@ type
       fPaused: Boolean;
       fDirection: TelParallaxDirection;
       fInternalPosition: TelVector3f;
+      // Used by draw-function. Do not change it elsewhere!
+      fRecursion : Boolean;
     public
       constructor Create; Override;
       destructor Destroy; Override;
@@ -139,7 +139,7 @@ type
       procedure Pause(); {$IFDEF CAN_INLINE} inline; {$ENDIF}
       procedure UnPause(); {$IFDEF CAN_INLINE} inline; {$ENDIF}
 
-      procedure Draw(DrawChildren: Boolean = true); Override;
+      procedure Draw(DrawChildren: Boolean = true); override;
       procedure Update(dt: Double = 0.0); Override;
     published
       property Direction: TelParallaxDirection read fDirection write fDirection;
@@ -158,18 +158,7 @@ type
   published
     property Paused: Boolean read fPaused write fPaused;
   end;
-  
-  
-  TelShadedSprite = class(TelSprite)
-    private
-        shader : TelShader;
-    public
-        
-        function LoadShaders( vshader : string; pshader : string ): Boolean;
-        procedure Draw(DrawChildren: Boolean = true); override;
-        
-  end;
-  
+
   { TelSpriteSheet }
 
   TelSpriteSheet = class(TelSprite)
@@ -256,108 +245,10 @@ TelSpriteList = class(TelObject)
     property Count: Integer read GetCount;
 end;
 
-
 implementation
 
 uses
   ElysionGraphics;
-
-
-//        shader : TelShader;
-//    public
-        
-function TelShadedSprite.LoadShaders( vshader : string; pshader : string ): Boolean;
-var plist, vlist : TStringList;
-begin
-    plist := TStringList.Create();
-    vlist := TStringList.Create();
-    
-    plist.LoadFromFile( pshader );
-    vlist.LoadFromFile( vshader );
-    
-    shader := TelShader.Create( vlist.Text, plist.Text );
-    
-    result := shader.Compile();
-
-    shader.Map( Texture, 'texture');
-    shader.Update;
-
-    WriteLn( IntToStr( Integer(result) ));
-end;
-
-
-procedure TelShadedSprite.Draw(DrawChildren: Boolean );
-var loc : TelVector3i;
-begin
-  if ((Visible) and (not Texture.Empty)) then
-  begin
-
-  	loc.X := Width;
-  	loc.Y := Height;
-  	
-  	fWidth := fWidth *  Integer(Round(Scale.X) + 1);
-  	fHeight := fHeight * Integer(Round(Scale.Y) + 1);
-  
-    shader.BindShader;
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glEnable(GL_TEXTURE_2D);
-
-    glPushMatrix;
-      glColor3f(1, 1, 1);
-      glBindTexture(GL_TEXTURE_2D, Self.Texture.TextureID);
-      if Transparent then
-      begin
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.1);
-      end;
-
-  	glTranslatef((ParentPosition.X + Position.X - Margin.Left - Border.Left.Width - Padding.Left + Origin.X) * ActiveWindow.ResScale.X,
-                     (ParentPosition.Y + Position.Y - Margin.Top - Border.Top.Width - Padding.Top + Origin.Y) * ActiveWindow.ResScale.Y, ParentPosition.Z);
-
-  	if Abs(Rotation.Angle) >= 360.0 then Rotation.Angle := 0.0;
-
-  	if Rotation.Angle <> 0.0 then glRotatef(Rotation.Angle, Rotation.Vector.X, Rotation.Vector.Y, Rotation.Vector.Z);
-
-      case BlendMode of
-        bmAdd: glBlendFunc(GL_ONE, GL_ONE);
-        bmNormal: glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        bmSub: glBlendFunc(GL_ZERO, GL_ONE);
-      end;
-      glEnable(GL_BLEND);
-    
-  	glColor4f(Color.R / 255, Color.G / 255, Color.B / 255, Alpha / 255);
-  //	glScalef(Scale.X * ActiveWindow.ResScale.X, Scale.Y * ActiveWindow.ResScale.Y, 1);
-    
-      glBegin(GL_QUADS);
-        
-        glTexCoord2f(0, 1); 		
-        glVertex3f(Position.X / ActiveWindow.Width - 1  , Position.Y / ActiveWindow.Height, -Position.Z);
-        
-        glTexCoord2f(0, 0); 
-        glVertex3f( Position.X / ActiveWindow.Width- 1 , (Position.Y + fHeight) /  ActiveWindow.Height,  -Position.Z);
-        
-        glTexCoord2f(1, 0); 
-        glVertex3f((Position.X + fWidth) / ActiveWindow.Width - 1 , (Position.Y + fHeight) /  ActiveWindow.Height, -Position.Z);
-        
-        glTexCoord2f(1,1);
-        glVertex3f((Position.X + fWidth) / ActiveWindow.Width - 1 , Position.Y / ActiveWindow.Height, -Position.Z);
-     
-      glEnd;
-        
-        
-    glPopMatrix;
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-
-    shader.UnbindShader;
-    
-    fWidth := loc.X;
-    fHeight := loc.Y;
-  end;
-  
-end;        
-
 
 { TelMovingSprite }
 
@@ -881,7 +772,6 @@ begin
 end;
 
 
-
 constructor TelSpriteSheet.Create;
 begin
   inherited;
@@ -1216,8 +1106,8 @@ end;
 constructor TelParallaxSprite.Create;
 begin
   inherited Create;
+  fRecursion := true;
 end;
-
 
 destructor TelParallaxSprite.Destroy;
 begin
@@ -1245,50 +1135,56 @@ begin
 end;
 
 procedure TelParallaxSprite.Draw();
-var leftMissing, rightMissing, upMissing, downMissing, formerX, formerY : Integer;
+var i,leftMissing, rightMissing, upMissing, downMissing : Integer; formerX, formerY : Single;
 begin
   inherited Draw;
+  // Immediately exit after draw: This is not the recursive call.
+  if(not fRecursion) then Exit;
+  fRecursion := false;
   // Ensure that the texture is bigger than the screen's width and height.
   // +2 because one picture can be partially visible, the second additional picture is guaranteed not to be seen.
   formerX := fInternalPosition.X;
   formerY := fInternalPosition.Y;
 
   //TODO: Ermitteln, wie viel nach links / rechts; oben / unten fehlt. Wenn das Bild zu weit außen ist, nach (0,0) verschieben (mindert Speicherbedarf).
-  leftMissing := (fInternalPosition.X div Width )+1;
-  rightMissing := (Application.Width - (fInternalPosition.X+ Width))/Width +1;
-  upMissing := (fInternalPosition.y div Height) +1;
-  downMissing := ((Application.Height - (fInternalPosition.y + Height)) div Height) +1;
+  leftMissing := Trunc(fInternalPosition.X / Width)+1;
+  rightMissing := (ActiveWindow.Width - Trunc((fInternalPosition.X+ Width)/Width)) +1;
+  upMissing := Trunc(fInternalPosition.y / Height) +1;
+  downMissing := ((ActiveWindow.Height - Trunc((fInternalPosition.y + Height)) div Height)) +1;
 
   //  Draw shapes missing to completely fill the scene. Reset the sprite to its former coordinates after each run.
 
   for i := 0 to leftMissing do
   begin
-    Move(formerX,formerY-(Width*i));
-    (Self as TelSprite).Draw;
+    Position := MakeV3f(formerX,formerY-(Width*i));
+    Draw;
   end;
 
-  Move(formerX, formerY);
+  Position := MakeV3f(formerX, formerY);
   for i := 0 to rightMissing do
   begin
-    Move(formerX,i*Width+formerY);
-    (Self as TelSprite).Draw;
+    Position := MakeV3f(formerX,i*Width+formerY);
+    Draw;
   end;
 
-  Move(formerX, formerY);
-  for i := 0 to topMissing do
+  Position := MakeV3f(formerX, formerY);
+  for i := 0 to upMissing do
   begin
-    Move(formerX-i*Height,formerY);
-    (Self as TelSprite).Draw;
+    Position := MakeV3f(formerX-i*Height,formerY);
+    Draw;
   end;
 
-  Move(formerX, formerY);
+  Position := MakeV3f(formerX, formerY);
   for i := 0 to downMissing do
   begin
-    Move(formerX+i*Height,formerY);
-    (Self as TelSprite).Draw;
+    Position := MakeV3f(formerX+i*Height,formerY);
+    Draw;
   end;
 
-  Move(formerX, formerY);
+  Position := MakeV3f(formerX, formerY);
+
+  // Only the recursive call gets to here.
+  fRecursion := true;
 end;
 
 
@@ -1296,10 +1192,11 @@ procedure TelParallaxSprite.Update(dt: Double);
 begin
   inherited Update(dt);
   case fDirection of
-   dtUp: fInternalPosition.Y := fInternalPosition.Y -fSpeed*dt;
-   dtDown: fInternalPosition.Y := fInternalPosition.Y +fSpeed*dt;
-   dtLeft: fInternalPosition.Y := fInternalPosition.X -fSpeed*dt;
-   dtRight: fInternalPosition.Y := fInternalPosition.X +fSpeed*dt;
+   dtUp: Position.Y := Position.Y -fSpeed*dt;
+   dtDown: Position.Y := Position.Y +fSpeed*dt;
+   dtLeft: Position.X := Position.X -fSpeed*dt;
+   dtRight: Position.X := Position.X +fSpeed*dt;
+  end;
 end;
 
 end.
