@@ -269,8 +269,8 @@ end;
 function TelPostProcess.BeginProcess : Boolean;
 begin
     target.BindRenderTarget;
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glViewport(0,0,ActiveWindow.Width, ActiveWindow.Height );
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClearColor(0,0,0,0);
     glClear( GL_COLOR_BUFFER_BIT );
 end;

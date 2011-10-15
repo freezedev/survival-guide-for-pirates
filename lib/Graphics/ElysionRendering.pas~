@@ -300,6 +300,9 @@ begin
     width := fwidth;
     height := fheight;   
     
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_TEXTURE_2D);
+    
     glGenTextures(1, @tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
@@ -307,7 +310,8 @@ begin
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0); // place multisampling here too!
-   
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     glGenFramebuffers(1, @target_id );
     glBindFramebuffer(GL_FRAMEBUFFER, target_id );
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
@@ -316,9 +320,8 @@ begin
         WriteLn('Successfully Compiled');
     end;
     
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_TEXTURE_2D);
 end;
 
 function TelRenderTarget.BindRenderTarget : Boolean;

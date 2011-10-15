@@ -22,9 +22,9 @@ uses
   ElysionTexture,
   ElysionTypes,
   ElysionAnimTypes,
+  ElysionRendering,
   ElysionTimer,
   ElysionInput,
-  ElysionRendering,
   ElysionApplication;
 
 type
@@ -119,6 +119,16 @@ type
       property Height: Integer read GetHeight;
   end;
 
+  TelShadedSprite = class(TelSprite)
+    private
+        shader : TelShader;
+    public
+        
+        function LoadShaders( vshader : string; pshader : string ): Boolean;
+        procedure Draw(DrawChildren: Boolean = true); override;
+        
+  end;
+  
   { TelParallaxSprite }
 
   TelParallaxDirection = (dtUp, dtDown, dtLeft, dtRight);
@@ -129,6 +139,8 @@ type
       fPaused: Boolean;
       fDirection: TelParallaxDirection;
       fInternalPosition: TelVector3f;
+      // Used by draw-function. Do not change it elsewhere!
+      fRecursion : Boolean;
     public
       constructor Create; Override;
       destructor Destroy; Override;
@@ -138,7 +150,7 @@ type
       procedure Pause(); {$IFDEF CAN_INLINE} inline; {$ENDIF}
       procedure UnPause(); {$IFDEF CAN_INLINE} inline; {$ENDIF}
 
-      procedure Draw(DrawChildren: Boolean = true); Override;
+      procedure Draw(DrawChildren: Boolean = true); override;
       procedure Update(dt: Double = 0.0); Override;
     published
       property Direction: TelParallaxDirection read fDirection write fDirection;
@@ -157,18 +169,7 @@ type
   published
     property Paused: Boolean read fPaused write fPaused;
   end;
-  
-  
-  TelShadedSprite = class(TelSprite)
-    private
-        shader : TelShader;
-    public
-        
-        function LoadShaders( vshader : string; pshader : string ): Boolean;
-        procedure Draw(DrawChildren: Boolean = true); override;
-        
-  end;
-  
+
   { TelSpriteSheet }
 
   TelSpriteSheet = class(TelSprite)
@@ -260,10 +261,8 @@ implementation
 uses
   ElysionGraphics;
 
-
-//        shader : TelShader;
-//    public
-        
+{ TelMovingSprite }
+       
 function TelShadedSprite.LoadShaders( vshader : string; pshader : string ): Boolean;
 var plist, vlist : TStringList;
 begin
@@ -329,16 +328,16 @@ begin
       glBegin(GL_QUADS);
         
         glTexCoord2f(0, 1); 		
-        glVertex3f(Position.X / ActiveWindow.Width, Position.Y / ActiveWindow.Height, -Position.Z);
+        glVertex3f(Position.X / ActiveWindow.Width - 1  , Position.Y / ActiveWindow.Height, -Position.Z);
         
         glTexCoord2f(0, 0); 
-        glVertex3f( Position.X / ActiveWindow.Width, (Position.Y + fHeight) /  ActiveWindow.Height,  -Position.Z);
+        glVertex3f( Position.X / ActiveWindow.Width- 1 , (Position.Y + fHeight) /  ActiveWindow.Height,  -Position.Z);
         
         glTexCoord2f(1, 0); 
-        glVertex3f((Position.X + fWidth) / ActiveWindow.Width, (Position.Y + fHeight) /  ActiveWindow.Height, -Position.Z);
+        glVertex3f((Position.X + fWidth) / ActiveWindow.Width - 1 , (Position.Y + fHeight) /  ActiveWindow.Height, -Position.Z);
         
         glTexCoord2f(1,1);
-        glVertex3f((Position.X + fWidth) / ActiveWindow.Width, Position.Y / ActiveWindow.Height, -Position.Z);
+        glVertex3f((Position.X + fWidth) / ActiveWindow.Width - 1 , Position.Y / ActiveWindow.Height, -Position.Z);
      
       glEnd;
         
@@ -355,9 +354,6 @@ begin
   end;
   
 end;        
-
-
-{ TelMovingSprite }
 
 procedure TelMovingSprite.Update(dt: Double = 0.0);
 begin
@@ -1213,6 +1209,7 @@ end;
 constructor TelParallaxSprite.Create;
 begin
   inherited Create;
+  fRecursion := true;
 end;
 
 destructor TelParallaxSprite.Destroy;
@@ -1222,32 +1219,87 @@ end;
 
 procedure TelParallaxSprite.Start();
 begin
-
+  fPaused := false;
 end;
 
 procedure TelParallaxSprite.Stop();
 begin
-
+  fPaused := true;
 end;
 
 procedure TelParallaxSprite.Pause();
 begin
-
+  fPaused := true;
 end;
 
 procedure TelParallaxSprite.UnPause();
 begin
-
+  fPaused := false;
 end;
 
 procedure TelParallaxSprite.Draw();
+var i,leftMissing, rightMissing, upMissing, downMissing : Integer; formerX, formerY : Single;
 begin
-  inherited Draw();
+  inherited Draw;
+  // Immediately exit after draw: This is not the recursive call.
+  if(not fRecursion) then Exit;
+  fRecursion := false;
+  // Ensure that the texture is bigger than the screen's width and height.
+  // +2 because one picture can be partially visible, the second additional picture is guaranteed not to be seen.
+  formerX := fInternalPosition.X;
+  formerY := fInternalPosition.Y;
+
+  //TODO: Ermitteln, wie viel nach links / rechts; oben / unten fehlt. Wenn das Bild zu weit außen ist, nach (0,0) verschieben (mindert Speicherbedarf).
+  leftMissing := Trunc(fInternalPosition.X / Width)+1;
+  rightMissing := (ActiveWindow.Width - Trunc((fInternalPosition.X+ Width)/Width)) +1;
+  upMissing := Trunc(fInternalPosition.y / Height) +1;
+  downMissing := ((ActiveWindow.Height - Trunc((fInternalPosition.y + Height)) div Height)) +1;
+
+  //  Draw shapes missing to completely fill the scene. Reset the sprite to its former coordinates after each run.
+
+  for i := 0 to leftMissing do
+  begin
+    Position := MakeV3f(formerX,formerY-(Width*i));
+    Draw;
+  end;
+
+  Position := MakeV3f(formerX, formerY);
+  for i := 0 to rightMissing do
+  begin
+    Position := MakeV3f(formerX,i*Width+formerY);
+    Draw;
+  end;
+
+  Position := MakeV3f(formerX, formerY);
+  for i := 0 to upMissing do
+  begin
+    Position := MakeV3f(formerX-i*Height,formerY);
+    Draw;
+  end;
+
+  Position := MakeV3f(formerX, formerY);
+  for i := 0 to downMissing do
+  begin
+    Position := MakeV3f(formerX+i*Height,formerY);
+    Draw;
+  end;
+
+  Position := MakeV3f(formerX, formerY);
+
+  // Only the recursive call gets to here.
+  fRecursion := true;
 end;
+
 
 procedure TelParallaxSprite.Update(dt: Double);
 begin
   inherited Update(dt);
+  case fDirection of
+   dtUp: Position.Y := Position.Y -fSpeed*dt;
+   dtDown: Position.Y := Position.Y +fSpeed*dt;
+   dtLeft: Position.X := Position.X -fSpeed*dt;
+   dtRight: Position.X := Position.X +fSpeed*dt;
+  end;
 end;
 
 end.
