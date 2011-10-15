@@ -15,6 +15,7 @@
 *.res
 *.app
 *.rst
+*.bak
 
 # Packages #
 ############
@@ -52,3 +53,6 @@ bin/main
 # Excluded files #
 ##################
 !lib/MacOSX/libSDLMain.a
+
+# No Lazarus Config #
+source/main.lpi

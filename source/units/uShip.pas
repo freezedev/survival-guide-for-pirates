@@ -2,6 +2,8 @@ unit uShip;
 
 interface
 
+{$I Elysion.inc}
+
 uses
   ElysionTypes,
   ElysionApplication,
@@ -13,6 +15,7 @@ uses
   ElysionTimer,
   ElysionInput,
   ElysionUtils,
+  ElysionGauge,
 
   SysUtils,
   uBasic;
@@ -28,16 +31,24 @@ type
     fDirection: TShipDirection;
     fVelocity: TelVector2f;
 
-    procedure SetDirection(aDirection: TShipDirection);
+    fLife: TelGaugeInt;
+    fMunition: TelGaugeInt;
+
+    procedure SetDirection(aDirection: TShipDirection); {$IFDEF CAN_INLINE} inline; {$ENDIF}
   public
     constructor Create;
     destructor Destroy;
+
+    procedure Shoot(); virtual;
 
     procedure Draw; Override;
     procedure Update(dt: Double); Override;
   public
     property Velocity: TelVector2f read fVelocity write fVelocity;
   published
+    property Life: TelGaugeInt read fLife write fLife;
+    property Munition: TelGaugeInt read fMunition write fMunition;
+
     property Sprite: TelSprite read fSprite write fSprite;
     property Direction: TShipDirection read fDirection write SetDirection;
   end;
@@ -70,11 +81,19 @@ begin
   fSprite := TelSprite.Create;
   fSprite.LoadFromFile(GetResImgPath + 'ship');
   SetDirection(sdUp);
+
+  fLife := TelGaugeInt.Create(0, 100, 100);
+  fMunition := TelGaugeInt.Create(0, 10, 10);
 end;
 
 destructor TShip.Destroy;
 begin
   fSprite.Destroy;
+end;
+
+procedure TShip.Shoot;
+begin
+  // TODO: Add shooting!!!!
 end;
 
 procedure TShip.Draw;
