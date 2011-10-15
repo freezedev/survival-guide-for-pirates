@@ -21,6 +21,7 @@ uses
   ElysionStorage,
   ElysionLayer,
   ElysionCamera,
+  ElysionRendering,
   uGlobal,
   uBasic,
   uConfig;
@@ -29,13 +30,14 @@ type
   TGameScreen = class(TelScene)
   private
     fSprite: TelShadedSprite;
-
+    fRenderTarget : TelRenderTarget;
+    
     fFont: TelTrueTypeFont;
 
     fGameOver: Boolean;
     fCamera: TelCamera;
     fLayer: TelLayer;
-
+    fPostProcess : TelPostProcess;
     fAnimator: TelAnimator;
 
 
@@ -90,11 +92,13 @@ begin
   Sprite.LoadShaders(GetResPath + '/shaders/standard_shader.vs',GetResPath + '/shaders/standard_shader.fs');
   // Set position to
   Sprite.Position := makeV3f(64, 64);
+  
+  fPostProcess := TelPostProcess.Create(GetResPath + '/shaders/standard_shader.fs',GetResPath + '/shaders/standard_shader.vs');
     
   fCamera.Add(Sprite);
 
-  Self.Add(fCamera);
-  Self.Add(Sprite);
+  //Self.Add(fCamera);
+  //Self.Add(Sprite);
 
   fAnimator := TelAnimator.Create();
   fAnimator.FadeOutEffect();
@@ -107,8 +111,7 @@ begin
 
   //Self.Add(fLayer);
 
-  //Self.Add(Sprite);
-
+ 
   (**
     * Add sprite to the scene. We don't need to call Sprite.Draw or Sprite.Update(dt)
     * ourselves, the scene will take care of it if we call the inherited method.
@@ -163,9 +166,14 @@ end;
 
 procedure TGameScreen.Render;
 begin
-  inherited;
-
+  
+  fPostProcess.BeginProcess;
+  //Draw All objects
+  inherited; 
   fCamera.Draw;
+  fPostProcess.EndProcess;
+  
+  fPostProcess.Draw;
 
   // Draw game paused overlay
   if Paused then
