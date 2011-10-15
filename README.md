@@ -11,4 +11,4 @@ Who made this?
 
 - Johannes Stein (Stoney-FD)
 - Jesse Klugmann (JesseKlugmann)
-- Max (Mischmeister)
+- Max (Mitmischer)
