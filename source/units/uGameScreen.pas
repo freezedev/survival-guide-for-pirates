@@ -3,6 +3,7 @@ unit uGameScreen;
 interface
 
 {$I Elysion.inc}
+{$UNDEF SHADERS}
 
 uses
   Classes,
@@ -21,24 +22,35 @@ uses
   ElysionStorage,
   ElysionLayer,
   ElysionCamera,
+  {$IFDEF SHADERS}
   ElysionRendering,
+  {$ENDIF}
   uGlobal,
   uBasic,
-  uConfig;
+  uConfig,
+  uOcean;
 
 type
   TGameScreen = class(TelScene)
   private
+    {$IFDEF SHADERS}
     fSprite: TelShadedSprite;
     fRenderTarget : TelRenderTarget;
+    {$ENDIF}
+    totalTime : Double;
     
     fFont: TelTrueTypeFont;
 
     fGameOver: Boolean;
     fCamera: TelCamera;
     fLayer: TelLayer;
+    {$IFDEF SHADERS}
     fPostProcess : TelPostProcess;
+    {$ENDIF}
     fAnimator: TelAnimator;
+
+    fOcean: TOcean;
+    fGameSpeed : Double;
 
 
     procedure DrawDialog(Title, Text: String); {$IFDEF CAN_INLINE} inline; {$ENDIF}
@@ -55,8 +67,9 @@ type
     property Font: TelTrueTypeFont read fFont write fFont;
 
     property GameOver: Boolean read fGameOver;
-    
-    property Sprite: TelShadedSprite read fSprite write fSprite;
+
+
+    //property Sprite: TelShadedSprite read fSprite write fSprite;
   end;
 
 implementation
@@ -85,23 +98,26 @@ begin
   //fCamera.Viewport := makeRect(0, 0, 1024, 600);
 
   // Create Sprite
-  Sprite := TelShadedSprite.Create;
+//  Sprite := TelShadedSprite.Create;
 
   // Load logo image from disk
-  Sprite.LoadFromFile(GetResImgPath + 'logo.png');
-  Sprite.LoadShaders(GetResPath + '/shaders/standard_shader.vs',GetResPath + '/shaders/standard_shader.fs');
+//  Sprite.LoadFromFile(GetResImgPath + 'logo.png');
+  {$IFDEF SHADERS}
+ // Sprite.LoadShaders(GetResPath + '/shaders/standard_shader.vs',GetResPath + '/shaders/standard_shader.fs');
+  {$ENDIF}
   // Set position to
-  Sprite.Position := makeV3f(64, 64);
-  
-  fPostProcess := TelPostProcess.Create(GetResPath + '/shaders/standard_shader.fs',GetResPath + '/shaders/standard_shader.vs');
-    
-  fCamera.Add(Sprite);
+ // Sprite.Position := makeV3f(64, 64);
+  {$IFDEF SHADERS}
+  //fPostProcess := TelPostProcess.Create(GetResPath + '/shaders/standard_shader.fs',GetResPath + '/shaders/standard_shader.vs');
+  {$ENDIF}
+
+  fOcean := TOcean.Create;
+
+
+//  fCamera.Add(Sprite);
 
   //Self.Add(fCamera);
   //Self.Add(Sprite);
-
-  fAnimator := TelAnimator.Create();
-  fAnimator.FadeOutEffect();
 
 
   Self.SetPauseKey(Key.P());
@@ -128,7 +144,7 @@ end;
 
 destructor TGameScreen.Destroy;
 begin
-  Sprite.Destroy;
+//  Sprite.Destroy;
 
   Font.Destroy;
 
@@ -166,14 +182,20 @@ end;
 
 procedure TGameScreen.Render;
 begin
-  
+
+  {$IFDEF SHADERS}
   fPostProcess.BeginProcess;
+  {$ENDIF}
   //Draw All objects
   inherited; 
   fCamera.Draw;
+  {$IFDEF SHADERS}
   fPostProcess.EndProcess;
   
   fPostProcess.Draw;
+  {$ENDIF}
+
+  fOcean.Draw;
 
   // Draw game paused overlay
   if Paused then
@@ -189,19 +211,23 @@ begin
 end;
 
 procedure TGameScreen.Update(dt: Double);
+var x : Double;
 begin
-
   if not Paused and not GameOver then
   begin
     inherited;
+    totalTime := totalTime + dt*5;
+    fGameSpeed := totalTime;
 
+    // Let the ocean move around!
+    fOcean.Move(0,fGameSpeed);
     // This is called if game is running and not paused and game is not over
     //      -> Update game-related stuff here
     
-    if Sprite.MouseOver then Sprite.Alpha := 128
+    {if Sprite.MouseOver then Sprite.Alpha := 128
     else Sprite.Alpha := 255;
     
-    if Sprite.Click then Sprite.Color := makeCol(Random(255), Random(255), Random(255));
+    if Sprite.Click then Sprite.Color := makeCol(Random(255), Random(255), Random(255));}
 
     //Sprite.Velocity.Clear();
 
@@ -210,7 +236,7 @@ begin
     if Input.XBox360Controller.DPad.Up() then Sprite.Velocity.Y := - 100 * dt;
     if Input.XBox360Controller.DPad.Down() then Sprite.Velocity.X := 100 * dt; *)
 
-    if Input.XBox360Controller.LStick.Up then Sprite.Top := Sprite.Top - 1;
+//    if Input.XBox360Controller.LStick.Up then Sprite.Top := Sprite.Top - 1;
 
     (*Sprite.Velocity := Input.XBox360Controller.LStick.ToVector2f(500000 * dt);
     Self.Log(Sprite.Left);
@@ -222,11 +248,11 @@ begin
     //fCamera.Velocity.Clear();
     //if Input.Keyboard.IsKeyDown(Key.Left) then fCamera.Viewport.X := fCamera.Viewport.X + 1;
 
-    if Input.Keyboard.IsKeyHit(Key.Space()) then fAnimator.Start();
+ //   if Input.Keyboard.IsKeyHit(Key.Space()) then fAnimator.Start();
 
-    fAnimator.Update(dt);
+//    fAnimator.Update(dt);
 
-    fCamera.Update(dt);
+  //  fCamera.Update(dt);
 
     //Sprite.Velocity.Clear;
 

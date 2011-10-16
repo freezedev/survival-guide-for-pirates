@@ -81,8 +81,8 @@
 	!Important! The hole Elysion-Rendering System is not implemented yet.
 *}
 
-unit ElysionRendering;
 
+unit ElysionRendering;
 
 interface
 
@@ -113,7 +113,6 @@ uses
   SysUtils,
   OpenURLUtil,
   Classes;
-
 
 type
     
@@ -528,10 +527,8 @@ function TelShader.SetVertexShader( source : String ): Boolean;
 begin
     vertex_source := source;
 end;
-            
 
 
 end.
-
 
 

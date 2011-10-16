@@ -1238,7 +1238,7 @@ begin
 end;
 
 procedure TelParallaxSprite.Draw();
-var i,leftMissing, rightMissing, upMissing, downMissing : Integer; formerX, formerY : Single;
+var i,j,leftMissing, rightMissing, upMissing, downMissing : Integer; formerX, formerY : Single; rotateMe : boolean;
 begin
   inherited Draw;
   // Immediately exit after draw: This is not the recursive call.
@@ -1246,41 +1246,57 @@ begin
   fRecursion := false;
   // Ensure that the texture is bigger than the screen's width and height.
   // +2 because one picture can be partially visible, the second additional picture is guaranteed not to be seen.
-  formerX := fInternalPosition.X;
-  formerY := fInternalPosition.Y;
+  formerX := Position.X;
+  formerY := Position.Y;
 
   //TODO: Ermitteln, wie viel nach links / rechts; oben / unten fehlt. Wenn das Bild zu weit außen ist, nach (0,0) verschieben (mindert Speicherbedarf).
-  leftMissing := Trunc(fInternalPosition.X / Width)+1;
-  rightMissing := (ActiveWindow.Width - Trunc((fInternalPosition.X+ Width)/Width)) +1;
-  upMissing := Trunc(fInternalPosition.y / Height) +1;
-  downMissing := ((ActiveWindow.Height - Trunc((fInternalPosition.y + Height)) div Height)) +1;
+  leftMissing := Trunc(Position.X / Width)+1;
+  rightMissing := (ActiveWindow.Width - Trunc((Position.X+ Width)/Width)) +1;
+  upMissing := Trunc(Position.Y / Height) +1;
+  downMissing := (ActiveWindow.Height - Trunc((Position.Y + Height) / Height)) +1;
+
+  if(leftMissing > 2) then
+    formerX := Abs(ActiveWindow.Width-Position.X);
+//  Position := MakeV3f(0,0,0);
+  if(upMissing > 2)  then
+    formerY := Abs(ActiveWindow.Height-Position.Y);
+//  Position := MakeV3f(0,0,0);
 
   //  Draw shapes missing to completely fill the scene. Reset the sprite to its former coordinates after each run.
 
   for i := 0 to leftMissing do
   begin
-    Position := MakeV3f(formerX,formerY-(Width*i));
+    for j := 0 to upMissing do
+    begin
+    Position  := MakeV3f(formerX-(Width*i),formerY-j*Height);
+       // if(j mod 2 = 1)then
+       // Rotate(180);
     Draw;
+    end;
   end;
+  Position := MakeV3f(formerX, formerY);
+  // Position 0 has already been taken by loop above (for i := 0 to leftMissing)
+  for i := 1 to rightMissing do
+  begin
+    for j := 0 to upMissing do
+    begin
+      Position  := MakeV3f(i*Width+formerX,formerY-j*Height);
+      Draw;
+    end;
+  end;
+  Rotate(0);
 
   Position := MakeV3f(formerX, formerY);
-  for i := 0 to rightMissing do
+  {for i := 0 to upMissing do
   begin
-    Position := MakeV3f(formerX,i*Width+formerY);
+    Position := MakeV3f(formerX,formerY-i*Height);
     Draw;
-  end;
-
-  Position := MakeV3f(formerX, formerY);
-  for i := 0 to upMissing do
-  begin
-    Position := MakeV3f(formerX-i*Height,formerY);
-    Draw;
-  end;
+  end;}
 
   Position := MakeV3f(formerX, formerY);
   for i := 0 to downMissing do
   begin
-    Position := MakeV3f(formerX+i*Height,formerY);
+    Position := MakeV3f(formerX,formerY+i*Height);
     Draw;
   end;
 
